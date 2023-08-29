@@ -10,9 +10,9 @@ import (
 func main() {
 	fmt.Println("executing the memorymap benchmark")
 	tok := time.Now()
-	readFile("../sharedData/input2.html")
+	readFile("../sharedData/input.html")
 	tik := time.Now()
-	fmt.Printf("benchmark took : %s\n", tik.Sub(tok))
+	fmt.Printf("\nbenchmark took : %s\n", tik.Sub(tok))
 }
 
 func Min(x, y int) int {
@@ -40,7 +40,7 @@ func readFile(filePath string) {
     pageSize := os.Getpagesize()
 
     // number of concurrent pages to read
-	numberOfPages := 4
+	numberOfPages := 250
 
     // iterate the number of times the reading chunk fits in the file
     // the reading chunk being `numberOfPages*pageSize`
@@ -59,7 +59,7 @@ func readFile(filePath string) {
 			}
 			defer mmap.Unmap()
 
-			fmt.Println(string(mmap))
+			fmt.Print(string(mmap))
 		}()
 	}
 
@@ -85,5 +85,5 @@ func readFile(filePath string) {
 	}
 	defer mmap.Unmap()
 
-	fmt.Println(string(mmap))
+	fmt.Print(string(mmap))
 }
