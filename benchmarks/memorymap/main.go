@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
-	// "runtime"
 	"time"
-
 	"github.com/edsrzf/mmap-go"
 )
 
@@ -31,23 +29,30 @@ func readFile(filePath string) {
 	}
 	defer file.Close()
 
+    // use file stats to get file size
 	fInfo, err := file.Stat()
 	if err != nil {
 		panic(err)
 	}
+    fSize := int(fInfo.Size())
 
-	fmt.Printf("page size of this system : %d", os.Getpagesize())
+    // get system page Size
+    pageSize := os.Getpagesize()
 
+    // number of concurrent pages to read
 	numberOfPages := 4
 
-	for i := 0; i < int(fInfo.Size())/(numberOfPages*os.Getpagesize()); i++ {
+    // iterate the number of times the reading chunk fits in the file
+    // the reading chunk being `numberOfPages*pageSize`
+	for i := 0; i < fSize/(numberOfPages*pageSize); i++ {
+        // we use an anonymous function to execute a deferred statement on each iteration of the enclosing loop
 		func() {
 			mmap, err := mmap.MapRegion(
 				file,
-				numberOfPages*os.Getpagesize(),
+				numberOfPages*pageSize,
 				mmap.RDONLY,
 				0,
-				int64(numberOfPages*os.Getpagesize()*i),
+				int64(numberOfPages*pageSize*i),
 			)
 			if err != nil {
 				panic(err)
@@ -57,18 +62,23 @@ func readFile(filePath string) {
 			fmt.Println(string(mmap))
 		}()
 	}
+
+    // this is the last value of i in the previous for loop
+    // which means it's the index of the last whole chunk of data that was read from the file
     var last int
-    if int(fInfo.Size())/(numberOfPages*os.Getpagesize()) == int(int(fInfo.Size())/(numberOfPages*os.Getpagesize())) {
-        last = int(fInfo.Size())/(numberOfPages*os.Getpagesize()) - 1
+    if fSize/(numberOfPages*pageSize) == int(fSize/(numberOfPages*pageSize)) {
+        last = fSize/(numberOfPages*pageSize) - 1
     } else {
-        last = int(int(fInfo.Size())/(numberOfPages*os.Getpagesize()))
+        last = int(fSize/(numberOfPages*pageSize))
     }
+
+    // here we use the variable `last` to get the remaining data which size is smaller than the reading chunk
 	mmap, err := mmap.MapRegion(
 		file,
-		int(fInfo.Size())-numberOfPages*os.Getpagesize()*(last+1),
+		int(fSize)-numberOfPages*pageSize*(last+1),
 		mmap.RDONLY,
 		0,
-		int64(numberOfPages*os.Getpagesize()*int(int(fInfo.Size())/(numberOfPages*os.Getpagesize()))),
+		int64(numberOfPages*pageSize*int(fSize/(numberOfPages*pageSize))),
 	)
 	if err != nil {
 		panic(err)
